@@ -75,6 +75,7 @@ kubectl apply -f k8s/postgres-deployment.yaml
 kubectl apply -f k8s/postgres-service.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
 ```
 
 Verificar:
@@ -85,9 +86,21 @@ kubectl logs -n todoapp deploy/postgres
 kubectl logs -n todoapp deploy/todoapp
 ```
 
+Si usas NGINX Ingress Controller, añade el host al fichero `hosts` del cliente:
+
+```text
+<IP_INGRESS_CONTROLLER> todoapp.local
+```
+
+Acceso:
+```bash
+http://todoapp.local/
+http://todoapp.local/health
+```
+
 ## Diferencias por entorno
 
 | Escenario | Dónde corre nginx | Dónde corre app | Dónde corre postgres | Hostname de postgres | Punto de entrada HTTP | Comando de arranque |
 |---|---|---|---|---|---|---|
 | docker-compose local | Contenedor `nginx` | Contenedor `app` | Contenedor `postgres` | `postgres` | `localhost:8080` (nginx) | `docker compose up --build` |
-| k8s en otro PC | No requerido (Service/Ingress reemplaza) | Pod `todoapp` | Pod `postgres` | `postgres` | Service (NodePort/Ingress) | `kubectl apply -f k8s/` |
+| k8s en otro PC | No requerido (Ingress NGINX como entrada HTTP) | Pod `todoapp` | Pod `postgres` | `postgres` | Ingress `todoapp.local` -> Service `todoapp` | `kubectl apply -f k8s/` |
