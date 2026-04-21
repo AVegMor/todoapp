@@ -62,16 +62,27 @@ Secrets requeridos en GitHub:
 
 ## Kubernetes en otro PC
 1. Ajustar imagen en `k8s/deployment.yaml`.
-2. Editar `k8s/configmap.yaml` con host externo de PostgreSQL.
-3. Copiar `k8s/secret.example.yaml` a un secret real con credenciales.
+2. Revisar `k8s/configmap.yaml` (por defecto usa `postgres` dentro del cluster).
+3. Editar `k8s/secret.example.yaml` con tus credenciales.
 4. Aplicar manifiestos:
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.example.yaml
+kubectl apply -f k8s/postgres-pvc.yaml
+kubectl apply -f k8s/postgres-deployment.yaml
+kubectl apply -f k8s/postgres-service.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
+```
+
+Verificar:
+```bash
+kubectl get pods -n todoapp
+kubectl get svc -n todoapp
+kubectl logs -n todoapp deploy/postgres
+kubectl logs -n todoapp deploy/todoapp
 ```
 
 ## Diferencias por entorno
@@ -79,4 +90,4 @@ kubectl apply -f k8s/service.yaml
 | Escenario | Dónde corre nginx | Dónde corre app | Dónde corre postgres | Hostname de postgres | Punto de entrada HTTP | Comando de arranque |
 |---|---|---|---|---|---|---|
 | docker-compose local | Contenedor `nginx` | Contenedor `app` | Contenedor `postgres` | `postgres` | `localhost:8080` (nginx) | `docker compose up --build` |
-| k8s en otro PC | No requerido (Service/Ingress reemplaza) | Pod `todoapp` | Externo al cluster | configurable en `SPRING_DATASOURCE_URL` | Service (NodePort/Ingress) | `kubectl apply -f k8s/` |
+| k8s en otro PC | No requerido (Service/Ingress reemplaza) | Pod `todoapp` | Pod `postgres` | `postgres` | Service (NodePort/Ingress) | `kubectl apply -f k8s/` |
