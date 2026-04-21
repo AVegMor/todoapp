@@ -1,0 +1,458 @@
+---
+description: Reglas del proyecto para una app simple de tareas con Java, Spring Boot, PostgreSQL, Nginx, Docker Compose, GitHub Actions, Docker Hub y Kubernetes
+globs:
+alwaysApply: true
+---
+
+# Reglas del proyecto
+
+Este proyecto debe construirse como una aplicación simple, didáctica y mantenible de gestión de tareas.
+
+## Objetivo
+
+Crear una aplicación “todo app” con:
+- backend en Java con Spring Boot
+- frontend mínimo servido de forma simple
+- base de datos PostgreSQL
+- Nginx como reverse proxy
+- tests
+- Docker
+- Docker Compose para desarrollo local
+- GitHub Actions para CI/CD
+- publicación en Docker Hub
+- manifiestos Kubernetes simples para desplegar en otro PC
+
+La aplicación debe permitir:
+- listar tareas
+- crear tareas
+- marcar tareas como completadas o incompletas
+- eliminar tareas
+
+## Prioridades
+
+Prioriza siempre:
+- simplicidad real
+- legibilidad
+- coherencia entre archivos
+- facilidad de mantenimiento
+- facilidad de despliegue
+- portabilidad entre entornos
+
+Evita:
+- sobreingeniería
+- dependencias innecesarias
+- frontend complejo
+- configuraciones acopladas a una máquina concreta
+- credenciales hardcodeadas
+- soluciones demasiado sofisticadas si una más simple resuelve el problema
+
+## Stack preferido
+
+Usa este stack salvo que exista una razón fuerte y explícita para cambiarlo:
+- Java 21 o versión LTS razonable
+- Spring Boot
+- Maven
+- PostgreSQL
+- HTML/CSS/JS simple para frontend, o plantillas sencillas si es lo más simple
+- Nginx como reverse proxy
+- JUnit y/o Spring Boot Test
+- Dockerfile para la app
+- Docker Compose para entorno local
+- GitHub Actions para CI/CD
+- Kubernetes YAML simple
+
+## Escenarios soportados
+
+Este proyecto solo debe contemplar estos 2 escenarios:
+
+### 1. Desarrollo local con Docker Compose
+
+En local deben ejecutarse con Docker Compose:
+- nginx
+- app
+- postgres
+
+Reglas obligatorias:
+- Debe existir un `docker-compose.yml` para desarrollo local.
+- Deben levantarse al menos tres servicios: `nginx`, `app` y `postgres` o `db`.
+- Nginx debe actuar como punto de entrada HTTP.
+- Nginx debe hacer reverse proxy hacia la app Spring Boot.
+- La app debe conectarse a PostgreSQL usando el nombre del servicio de Docker Compose como hostname.
+- Dentro de Compose no debe usarse `localhost` como host de la base de datos ni como host entre contenedores.
+- Debe existir volumen persistente para PostgreSQL.
+- El entorno debe arrancarse con un comando simple, preferiblemente `docker compose up --build`.
+- Debe quedar claro qué puerto expone Nginx hacia el host.
+- Si hace falta esperar a que PostgreSQL esté listo, resuélvelo de forma simple y clara.
+- Documenta claramente el flujo de red: cliente -> nginx -> app -> postgres.
+
+### 2. Despliegue en Kubernetes en otro PC
+
+La app debe poder desplegarse en Kubernetes en otro ordenador distinto.
+
+Reglas obligatorias:
+- La aplicación Java debe poder usarse con la misma imagen Docker generada por CI/CD.
+- Si Nginx se mantiene en Kubernetes, documenta claramente por qué; si no, justifica si Kubernetes Service o Ingress reemplaza su función.
+- El código no debe cambiar entre Docker Compose y Kubernetes.
+- Solo debe cambiar la configuración externa.
+- La configuración debe venir por variables de entorno.
+- Usa `ConfigMap` para datos no sensibles.
+- Usa `Secret` para credenciales u otros datos sensibles.
+- Debe existir carpeta `k8s/` con YAML simples y legibles.
+- No usar Helm.
+- Incluir `readinessProbe` y `livenessProbe` usando `/health`.
+- No asumir que PostgreSQL vive dentro del clúster.
+- La app debe quedar preparada para conectarse a una BD configurable por variables.
+
+## Filosofía de configuración
+
+Sigue la idea:
+- build once, configure per environment
+
+Reglas obligatorias:
+- No hardcodear IPs
+- No hardcodear rutas locales
+- No hardcodear credenciales
+- No hardcodear hostnames específicos de una máquina
+- Toda configuración dependiente del entorno debe ir por variables de entorno
+- La conexión a base de datos debe usar variables estándar de Spring Boot, preferiblemente `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`, o una estrategia equivalente bien justificada
+- El puerto de la app debe ser configurable
+- No guardar secretos reales en el repositorio
+
+## Arquitectura
+
+Antes de generar archivos o hacer cambios estructurales importantes:
+- propón la arquitectura
+- propón el árbol de directorios
+- explica de forma breve las decisiones técnicas
+- explica cómo se resuelven los 2 entornos: Compose local y Kubernetes
+- explica la estrategia de tests
+- explica la estrategia de CI/CD
+- explica el papel exacto de Nginx en local y en Kubernetes
+
+Después de eso, genera archivos completos.
+
+## Backend
+
+La API debe incluir como mínimo:
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `PATCH /api/tasks/{id}`
+- `DELETE /api/tasks/{id}`
+- `GET /health`
+
+Reglas del backend:
+- usar Spring Boot
+- validación básica de entrada
+- manejo de errores consistente
+- logs simples
+- estructura limpia, pero sin sobrediseño
+- código pequeño, claro y fácil de seguir
+- usar variables de entorno
+- endpoint `/health` siempre disponible
+- el backend debe ser fácil de testear
+- usar Actuator solo si realmente aporta valor y se mantiene simple
+
+## Base de datos
+
+Usa PostgreSQL.
+
+La tabla `tasks` debe incluir al menos:
+- `id`
+- `title`
+- `completed`
+- `created_at`
+
+Reglas:
+- crear esquema SQL o migración inicial
+- añadir forma clara de inicializar la base de datos
+- permitir seed opcional con datos de ejemplo
+- mantener el acceso a datos simple; usar Spring Data JPA si simplifica el proyecto de forma real
+- evitar capas innecesarias
+
+## Frontend
+
+El frontend debe ser mínimo, limpio y funcional.
+
+Debe permitir:
+- listar tareas
+- crear tareas
+- marcar completada/incompleta
+- borrar tarea
+
+Reglas:
+- evitar frameworks frontend innecesarios
+- si es posible, servir frontend simple desde la aplicación o desde Nginx con una estrategia clara
+- priorizar simplicidad sobre estética compleja
+- mantener HTML, CSS y JS fáciles de entender
+
+## Diseño y experiencia de usuario
+
+La aplicación debe tener una interfaz moderna, limpia, agradable y funcional, sin introducir complejidad innecesaria en el frontend.
+
+### Objetivo visual
+
+La interfaz debe transmitir:
+- simplicidad
+- claridad
+- aspecto moderno
+- buena jerarquía visual
+- buena legibilidad
+- sensación de producto actual, no de demo antigua
+
+Evita:
+- apariencia básica o anticuada
+- estilos por defecto sin trabajar
+- colores estridentes
+- exceso de efectos visuales
+- animaciones innecesarias
+- diseño recargado
+- componentes visualmente inconsistentes
+
+### Layout
+
+Reglas obligatorias:
+- usar un layout moderno y responsive
+- incluir una estructura clara con cabecera, contenido principal y zona de acciones si hace falta
+- mantener buen espaciado entre bloques
+- usar una anchura de contenido cómoda y centrada
+- garantizar que la interfaz funcione bien en escritorio y móvil
+- evitar que el diseño parezca una página HTML sin estilo
+- priorizar una interfaz simple pero cuidada
+
+La página principal debe mostrar claramente:
+- título de la aplicación
+- formulario para añadir tareas
+- lista de tareas
+- acciones visibles y fáciles de entender
+- estados claros para tareas completadas e incompletas
+- estado vacío bien resuelto cuando no haya tareas
+
+### Modo oscuro
+
+La app debe incluir modo claro y modo oscuro.
+
+Reglas obligatorias:
+- soportar modo oscuro de forma nativa
+- usar variables CSS o una estrategia equivalente y mantenible para tematización
+- no duplicar estilos innecesariamente
+- no implementar dark mode invirtiendo colores de forma automática o chapucera
+- permitir, si es razonable, respetar `prefers-color-scheme`
+- si es sencillo, añadir también un toggle manual de tema
+- mantener consistencia visual entre modo claro y oscuro
+- comprobar que botones, textos, bordes, inputs, tarjetas y estados siguen siendo legibles en ambos temas
+
+### Accesibilidad visual
+
+Reglas obligatorias:
+- asegurar contraste suficiente en modo claro y oscuro
+- mantener texto legible en todos los estados
+- no usar negro puro sobre blanco puro ni blanco puro sobre negro puro si eso empeora la experiencia visual
+- usar fondos oscuros suaves en dark mode en lugar de negro absoluto cuando sea razonable
+- garantizar que enlaces, botones, inputs y focos sean claramente visibles
+- mantener estados hover, focus y disabled bien diferenciados
+- no depender solo del color para indicar estado
+- las tareas completadas deben distinguirse también por estilo, no solo por color
+
+### Sistema visual
+
+Reglas obligatorias:
+- usar una paleta sobria y moderna
+- usar un color de acento coherente y contenido
+- mantener bordes, radios, sombras y espaciados consistentes
+- usar tarjetas, paneles o contenedores suaves si ayudan a estructurar la interfaz
+- mantener tipografía limpia y fácil de leer
+- evitar tipografías extravagantes o decorativas
+- evitar un aspecto excesivamente empresarial o excesivamente experimental
+
+### Implementación
+
+Reglas obligatorias:
+- mantener el frontend simple, sin frameworks innecesarios
+- preferir HTML + CSS + JS sencillo
+- centralizar colores y tokens visuales en variables CSS
+- estructurar el CSS de forma clara y mantenible
+- si se añade toggle de tema, implementarlo de forma simple y robusta
+- documentar brevemente en el README cómo funciona el modo oscuro si existe toggle manual
+
+### Validación final de UI
+
+Antes de dar por terminada la interfaz, comprobar:
+- que el layout se ve moderno y no improvisado
+- que la app se usa cómodamente en escritorio
+- que la app se usa correctamente en móvil
+- que el modo claro funciona bien
+- que el modo oscuro funciona bien
+- que el contraste es suficiente
+- que inputs, botones, lista y estados vacíos están visualmente bien resueltos
+
+## Nginx
+
+Nginx debe usarse de manera justificada y simple.
+
+Reglas:
+- en Docker Compose, Nginx debe actuar como reverse proxy hacia la app Java
+- documentar claramente la configuración de Nginx
+- mantener la configuración mínima necesaria
+- evitar configuraciones avanzadas innecesarias
+- si sirve también contenido estático, explicarlo claramente
+- el usuario debe poder acceder a la app a través del puerto publicado por Nginx
+
+## Tests
+
+Reglas:
+- incluir tests unitarios y/o de servicio para la lógica principal
+- incluir tests de integración para la API
+- `mvn test` debe funcionar
+- si se usan perfiles o base de datos de test, explicarlo claramente
+- si es razonable, incluir verificación de build con Maven
+
+## Docker
+
+Reglas:
+- incluir `Dockerfile`
+- incluir `.dockerignore`
+- si aporta valor, usar multi-stage build
+- mantener imagen razonablemente pequeña
+- seguir buenas prácticas básicas
+- asegurar coherencia entre Dockerfile, variables de entorno y arranque de la app
+
+## Docker Compose
+
+Reglas:
+- incluir `docker-compose.yml`
+- definir claramente `nginx`, `app` y `postgres`
+- usar volumen persistente para la BD
+- documentar los puertos expuestos
+- documentar las variables de entorno
+- mantener la configuración simple
+- evitar complejidad de red innecesaria
+
+## GitHub
+
+Preparar el proyecto para subirse a GitHub.
+
+Reglas:
+- incluir `.gitignore`
+- incluir `README.md`
+- incluir `.env.example`
+- definir comandos y uso con Maven
+- si aporta valor, añadir configuración de formateo o lint Java
+- mantener la configuración del proyecto clara y estándar
+
+## README
+
+El `README.md` debe explicar claramente:
+- qué hace la app
+- stack usado
+- estructura del proyecto
+- variables de entorno
+- ejecución local con Docker Compose
+- tests
+- build de Maven
+- build de Docker
+- subida a GitHub
+- configuración de GitHub Actions
+- configuración de secrets de GitHub
+- publicación en Docker Hub
+- despliegue en Kubernetes en otro PC
+- qué cambia entre Docker Compose y Kubernetes
+
+Además, incluir una tabla clara con estas filas:
+- docker-compose local
+- k8s en otro PC
+
+Y columnas equivalentes a:
+- dónde corre nginx
+- dónde corre la app
+- dónde corre postgres
+- hostname de postgres
+- punto de entrada HTTP
+- comando de arranque
+
+## GitHub Actions
+
+Debe existir:
+- `.github/workflows/ci.yml`
+
+Comportamiento requerido:
+- en cada pull request:
+  - preparar Java
+  - ejecutar tests con Maven
+  - construir la imagen Docker
+  - no publicar en Docker Hub
+- en cada push:
+  - preparar Java
+  - ejecutar tests con Maven
+  - construir la imagen Docker
+- solo si el push es a `main` y todo va bien:
+  - login en Docker Hub
+  - publicar imagen
+
+Reglas del workflow:
+- usar GitHub Actions
+- usar `actions/setup-java`
+- usar `docker/login-action`
+- usar `docker/build-push-action`
+- etiquetar la imagen al menos con:
+  - `latest`
+  - SHA corto del commit
+- usar secrets:
+  - `DOCKERHUB_USERNAME`
+  - `DOCKERHUB_TOKEN`
+- no hacer push de imagen en pull requests
+
+La filosofía del pipeline debe ser:
+- tests -> build -> docker build -> docker push solo si todo va bien
+
+## Kubernetes
+
+Debe existir carpeta `k8s/` con al menos:
+- `deployment.yaml`
+- `service.yaml`
+- `configmap.yaml`
+- `secret.example.yaml`
+- `namespace.yaml` si aporta claridad
+
+Reglas:
+- usar variables de entorno desde `ConfigMap` y `Secret`
+- usar imagen desde Docker Hub
+- incluir `readinessProbe` y `livenessProbe` contra `/health`
+- no incluir secretos reales
+- explicar claramente qué debe modificar el usuario antes de desplegar
+- mantener los manifiestos simples y legibles
+- no asumir PostgreSQL dentro del mismo clúster
+
+## Calidad del código
+
+Reglas obligatorias:
+- no generar pseudocódigo
+- generar archivos completos
+- mantener nombres claros
+- añadir comentarios solo cuando aporten valor
+- evitar sobreingeniería
+- mantener coherencia entre Maven, Dockerfile, Compose, GitHub Actions, README y YAML de Kubernetes
+
+## Forma de trabajar
+
+Cuando se te pida crear el proyecto o una parte importante del mismo:
+1. Primero propone arquitectura y árbol de directorios.
+2. Después genera archivos completos.
+3. Explica brevemente para qué sirve cada archivo nuevo o modificado.
+4. Si detectas una decisión ambigua, elige la opción más simple y robusta y explícalo.
+5. Si modificas infraestructura, revisa también README y coherencia global.
+
+## Forma de responder
+
+Cuando el usuario pida generar el proyecto:
+- empieza por una propuesta breve de arquitectura
+- continúa con el árbol de directorios
+- luego genera el contenido completo de los archivos
+- termina con pasos claros de uso para:
+  - Docker Compose local
+  - tests con Maven
+  - GitHub
+  - GitHub Secrets
+  - Docker Hub
+  - Kubernetes en otro PC
+
+Responde de forma clara, práctica y sin relleno.
